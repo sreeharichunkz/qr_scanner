@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>QR Scanner</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body {
+    body, html {
       margin: 0;
-      background-color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-family: Arial, sans-serif;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
     }
     #reader {
       width: 100vw;
@@ -22,36 +19,42 @@
 </head>
 <body>
   <div id="reader"></div>
+
   <script>
-    function sendToFlutter(data) {
-      ScannerChannel.postMessage(data);
+    function onScanSuccess(decodedText, decodedResult) {
+      // Send the scanned code to Flutter via JavaScript channel
+      if (window.ScannerChannel && window.ScannerChannel.postMessage) {
+        window.ScannerChannel.postMessage(decodedText);
+      } else {
+        console.log("Scanned code:", decodedText);
+      }
     }
 
-    const qrScanner = new Html5Qrcode("reader");
+    function onScanFailure(error) {
+      // Handle scan failure, if needed
+      console.warn(`QR scan error: ${error}`);
+    }
+
+    const html5QrCode = new Html5Qrcode("reader");
 
     Html5Qrcode.getCameras().then(devices => {
       if (devices && devices.length) {
-        const backCamera = devices.find(d =>
-          d.label.toLowerCase().includes('back')
-        ) || devices[0];
-
-        qrScanner.start(
-          { deviceId: backCamera.id },
+        // Prefer back camera if available
+        const backCamera = devices.find(device => device.label.toLowerCase().includes('back')) || devices[0];
+        html5QrCode.start(
+          backCamera.id,
           {
             fps: 10,
-            qrbox: { width: 300, height: 300 }
+            qrbox: { width: 250, height: 250 }
           },
-          qrCodeMessage => {
-            sendToFlutter(qrCodeMessage);
-            qrScanner.stop();
-          },
-          errorMessage => {
-            console.warn(`QR error: ${errorMessage}`);
-          }
+          onScanSuccess,
+          onScanFailure
         );
+      } else {
+        console.error("No cameras found.");
       }
     }).catch(err => {
-      console.error("Camera init error", err);
+      console.error("Error accessing cameras:", err);
     });
   </script>
 </body>
