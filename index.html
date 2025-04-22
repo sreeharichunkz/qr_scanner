@@ -1,61 +1,55 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>QR Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    #reader {
-      width: 100vw;
-      height: 100vh;
-    }
-  </style>
-</head>
-<body>
-  <div id="reader"></div>
-
-  <script>
-    function onScanSuccess(decodedText, decodedResult) {
-      // Send the scanned code to Flutter via JavaScript channel
-      if (window.ScannerChannel && window.ScannerChannel.postMessage) {
-        window.ScannerChannel.postMessage(decodedText);
-      } else {
-        console.log("Scanned code:", decodedText);
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>QR Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background-color: #000;
       }
-    }
-
-    function onScanFailure(error) {
-      // Handle scan failure, if needed
-      console.warn(`QR scan error: ${error}`);
-    }
-
-    const html5QrCode = new Html5Qrcode("reader");
-
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        // Prefer back camera if available
-        const backCamera = devices.find(device => device.label.toLowerCase().includes('back')) || devices[0];
-        html5QrCode.start(
-          backCamera.id,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          onScanSuccess,
-          onScanFailure
-        );
-      } else {
-        console.error("No cameras found.");
+      #reader {
+        width: 100vw;
+        height: 100vh;
       }
-    }).catch(err => {
-      console.error("Error accessing cameras:", err);
-    });
-  </script>
-</body>
+    </style>
+  </head>
+  <body>
+    <div id="reader"></div>
+    <script>
+      function onScanSuccess(decodedText, decodedResult) {
+        if (window.ScannerChannel && window.ScannerChannel.postMessage) {
+          window.ScannerChannel.postMessage(decodedText);
+        } else {
+          alert("Scanned: " + decodedText);
+        }
+      }
+
+      function onScanFailure(error) {
+        console.warn(`QR error: ${error}`);
+      }
+
+      const html5QrCode = new Html5Qrcode("reader");
+
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+          const backCamera = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
+          html5QrCode.start(
+            { deviceId: { exact: backCamera.id } },
+            { fps: 10, qrbox: 250 },
+            onScanSuccess,
+            onScanFailure
+          );
+        } else {
+          alert("No camera found");
+        }
+      }).catch(err => {
+        alert("Camera init error: " + err);
+      });
+    </script>
+  </body>
 </html>
